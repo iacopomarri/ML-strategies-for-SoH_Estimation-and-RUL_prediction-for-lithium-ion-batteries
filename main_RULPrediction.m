@@ -1,4 +1,6 @@
 %% RUL prediction experiments
+% Note that this is just a mild, raw first attempt, to set up the RUL
+% prediction problem
 
 clear all
 clc
@@ -8,22 +10,23 @@ load('B0007.mat')
 load('B0018.mat')
 
 %% Measure nominal capacities
-nom_capacity5 = B0005.cycle(2).data.Capacity
-nom_capacity6 = B0006.cycle(2).data.Capacity
-nom_capacity7 = B0007.cycle(2).data.Capacity
-nom_capacity18 = B0018.cycle(3).data.Capacity
+nom_capacity5 = B0005.cycle(2).data.Capacity;
+nom_capacity6 = B0006.cycle(2).data.Capacity;
+nom_capacity7 = B0007.cycle(2).data.Capacity;
+nom_capacity18 = B0018.cycle(3).data.Capacity;
 
 %% Extract the features dataset. 
 
-% (we keep only Y, so we don't care about range and step of the partial curves)
+% (we keep only Y, and will use as feature X the number of cycle (1 to lenght(Y))
 [~ , Y] = ExtractPartialCurve(B0005,3.6,0.2,4);
-X = 1:length(Y)
+X = 1:length(Y);
 
 %replace Capacity with SoH
 Y = Y/nom_capacity5;
 %% Train and Test
 
-training_split = 0.8;
+%This sets the cycle from which we predict
+training_split = 0.6;
 trainset_length = cast((length(X) * training_split), 'uint8');
 
 X_train = X(1:trainset_length);
@@ -41,8 +44,7 @@ figure();
 plot(X, Y,'r');
 hold on;
 scatter (trainset_length+1:length(Y),pred, 'x','b');
-a = trainset_length
-xline(66, '-', 'color','#c2ad5d', 'LineWidth',1.5);
+xline(double(trainset_length), '-', 'color','#c2ad5d', 'LineWidth',1.5);
 %scatter (1:length(Y),full_pred,'green')
 xlabel('N° of cycle') 
 ylabel('SoH')

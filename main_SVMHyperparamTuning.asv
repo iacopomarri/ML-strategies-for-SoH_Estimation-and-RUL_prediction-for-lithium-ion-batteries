@@ -139,16 +139,16 @@ Y_train = [Y_6 Y_7];
 X_test = X_5;
 Y_test = Y_5;
 
-%SVM hyperparams
+rng default
+%model_3 = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",'auto', "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=30, ShowPlots=false));
+
+%% Model, Results and plots
 BC =  50.045;     % > 0.5 OK
 KS = 149.59;      % > 0.1 OK
 Eps = 0.03507;   %0.095   % Molto a caso
 
-rng default
 model = fitrsvm(X_train,Y_train, BoxConstraint = BC, Epsilon = Eps, KernelScale=KS);
-%model = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",'auto', "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=30, ShowPlots=false));
-
-%Results and plots
+%model = fitrsvm(X_train,Y_train, Standardize=model_3.ModelParameters.StandardizeData, BoxConstraint = model_3.ModelParameters.BoxConstraint, Epsilon=model_3.ModelParameters.Epsilon, KernelScale=model_3.ModelParameters.KernelScale);
 R2 = loss(model,X_test, Y_test, 'LossFun', @Rsquared);
 pred = predict(model,X_test);
 
@@ -168,23 +168,19 @@ plot ([1:length(Y_test)], pred,'r--', 'DisplayName', "Estimated,  R^2: "+ num2st
 %more complex) we can overfit B5 and push R2 up over to 0.99+, but losing
 %in generalization
 
-clc
 X_train = X_5;
 Y_train = Y_5;
 X_test = X_train;
 Y_test = Y_train;
 
-%SVM hyperparams
 BC =  247.38;    % > 0.5 OK
 KS = 498.86;      % > 0.1 OK
 Eps = 0.00177;   %0.095   % Molto a caso
 
-%model
 rng default
 model = fitrsvm(X_train,Y_train, BoxConstraint = BC, Epsilon = Eps, KernelScale=KS);
 %model = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",'auto', "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=10));
 
-%Results and plots
 R2 = loss(model,X_test, Y_test, 'LossFun', @Rsquared);
 pred=predict(model, X_test);
 

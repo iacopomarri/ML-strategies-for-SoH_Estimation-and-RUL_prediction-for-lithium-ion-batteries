@@ -1,4 +1,10 @@
-%% Structure Emil's data into a NASA like data structure
+%% Structure Old POLIMI data into a NASA like data structure
+
+%This file has been used to produce I_8_20_v2, I_25_02_vs, ecc..
+
+%To run this, you need to add to your working directory, the mat data
+%files for the batteries I_8_20.mat, ...
+
 clc
 close all
 clear all

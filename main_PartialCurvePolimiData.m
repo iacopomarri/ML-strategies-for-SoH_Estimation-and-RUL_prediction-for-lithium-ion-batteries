@@ -1,4 +1,4 @@
-%% Using partial charging curve on old Polimi data.
+%% Using partial charging curve and tuning SVM on old Polimi data. 
 clc
 clear all
 %close all
@@ -7,15 +7,18 @@ load("I_8_20_v2.mat");
 load("I_25_02_v2.mat");
 load("I_50_v2.mat");
 
-%%
+%% Plotting temp. of each charging cycle
 [ch, dis] = ExtractCyclesIndices(I_8_20_v2);
 figure()
+ylabel('Temperature C°');
 hold on
 for i=1:1:length(ch)
     plot(I_8_20_v2.cycle(ch(i)).data.Temperature_measured);
+    
 end
-%%
+%% Building feature sets for each battery
 clc
+
 % Measure nominal capacities
 nom_capacity8 = I_8_20_v2.cycle(2).data.Capacity;
 nom_capacity25 = I_25_02_v2.cycle(2).data.Capacity;
@@ -35,23 +38,54 @@ Y_8 = Y_8/nom_capacity8;
 Y_25 = Y_25/nom_capacity25;
 Y_50 = Y_50/nom_capacity50;
 
+
+%% Visualize features over number of cycle
+
+a=start_range1:step:end_range1;
+
+figure()
+hold on
+title ('Features Batt. 8');
+xlabel('N° of cycle' );
+ylabel('Charge time' );
+plot(X_8)
+legend(string(a) + ' - ' + string(a+step) + ' V', 'location', 'best','FontSize',12);
+
+figure()
+hold on
+title ('Features Batt. 25');
+xlabel('N° of cycle' );
+ylabel('Charge time' );
+plot(X_25)
+legend(string(a) + ' - ' + string(a+step) + ' V', 'location', 'best','FontSize',12);
+
+figure()
+hold on
+title ('Features Batt. 50');
+xlabel('N° of cycle' );
+ylabel('Charge time' );
+plot(X_50)
+legend(string(a) + ' - ' + string(a+step) + ' V', 'location', 'best','FontSize',12);
+
+
 %% Optimize model on I_8/25 to fit I_50
 clc
 X_train = vertcat(X_25);
 Y_train = [Y_25];
 X_test = X_50;
 Y_test = Y_50;
-%% Optimization procedure
-rng default
-model_opt = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",'auto', "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=500, ShowPlots=false));
 
-%% Results and plots
+%SVM hyperparams
 BC =  10.045;     % > 0.5 OK
 KS = 20.59;      % > 0.1 OK
 Eps = 0.000107;    % Molto a caso
 
+%model
+rng default
 model = fitrsvm(X_train,Y_train, BoxConstraint = BC, Epsilon = Eps, KernelScale=KS);
-%model = fitrsvm(X_train,Y_train, Standardize=model_opt.ModelParameters.StandardizeData, BoxConstraint = model_opt.ModelParameters.BoxConstraint, Epsilon=model_opt.ModelParameters.Epsilon, KernelScale=model_opt.ModelParameters.KernelScale);
+%model = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",'auto', "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=500, ShowPlots=false));
+
+%Results and plots
 R2 = loss(model,X_test, Y_test, 'LossFun', @Rsquared);
 pred = predict(model,X_test);
 

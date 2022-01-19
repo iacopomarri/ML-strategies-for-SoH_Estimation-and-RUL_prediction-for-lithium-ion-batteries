@@ -1,4 +1,6 @@
-%% Same SVM with B0005-6-7-820 LOOCV
+%% Same SVM with B0005-6-7-820 LOOCV.
+%% USELESS, probabily to delete
+
 %% Setting up datasets
 close all
 clear all
