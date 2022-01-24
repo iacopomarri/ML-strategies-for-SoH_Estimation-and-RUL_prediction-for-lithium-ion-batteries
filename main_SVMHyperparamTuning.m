@@ -6,6 +6,7 @@
 close all
 clear all
 clc
+
 %% Building feature sets for each battery
 load('B0005.mat');
 load('B0006.mat');
@@ -39,11 +40,11 @@ a=start_range1:step:end_range1;
 
 figure()
 hold on
-title ('Features Batt. 5');
+title ('Features Batt. 5', 'FontSize', 20);
 xlabel('N° of cycle' );
 ylabel('Charge time' );
 plot(X_5)
-legend(string(a) + ' - ' + string(a+step) + ' V', 'location', 'best','FontSize',12);
+legend(string(a) + ' - ' + string(a+step) + ' V', 'location', 'best','FontSize',20);
 
 figure()
 hold on
