@@ -8,15 +8,17 @@ clc
 load('B0005.mat');
 load('Battery5.mat');
 
-clc
-ncyc = 40;
+[ch,dis] = ExtractCyclesIndices(B0005);
 
-movedc = [ncyc];
-total_movedc = [ncyc];
+movedc = [];
+total_movedc = [];
 
-for i=1:ncyc
-    cycle = B0005.cycle(i).data;
-    times = [0 diff(cycle.Time)];
+for i=1:length(ch)
+    ch_cycle = B0005.cycle(ch(i)).data;
+    dis_cycle = B0005.cycle(dis(i)).data;
+
+    ch_times = [0 diff(ch_cycle.Time)];
+    dis_times = [0 diff(dis_cycle.Time)];
 
     %{
     if isfield(cycle, 'Current_charge')
@@ -25,22 +27,16 @@ for i=1:ncyc
     end
     %}
 
-    current = abs(cycle.Current_measured);
-    movedc(i) = abs(times*transpose(current));
-    movedc(i) = movedc(i)/3600;
-    
+    ch_current = abs(ch_cycle.Current_measured);
+    dis_current = abs(dis_cycle.Current_measured);
+
+    movedc = [movedc abs(ch_times*transpose(ch_current) + dis_times*transpose(dis_current))/3600];
+    total_movedc = [total_movedc sum(movedc(1:i))];
 end
 
-for i=1:ncyc/2
-    total_movedc(i) = sum(movedc(1:2*i));
-end
+%total_movedc = total_movedc/3600;
 
 
-
-
-error_from_Q5 = total_movedc - Q5(1:ncyc/2);
-error_derivative = diff(error_from_Q5);
-total_movedc = vertcat(total_movedc, Q5(1:ncyc/2));
 
 
 

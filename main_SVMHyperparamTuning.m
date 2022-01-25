@@ -34,6 +34,10 @@ Y_6 = Y_6/nom_capacity6;
 Y_7 = Y_7/nom_capacity7;
 Y_18 = Y_18/nom_capacity18;
 
+X_5 = ExtractTotalMovedCharge(B0005);
+X_6 = ExtractTotalMovedCharge(B0006);
+X_7 = ExtractTotalMovedCharge(B0007);
+X_18 = ExtractTotalMovedCharge(B0018);
 %% Visualize features over number of cycle
 
 a=start_range1:step:end_range1;
@@ -141,13 +145,17 @@ X_test = X_5;
 Y_test = Y_5;
 
 %SVM hyperparams
-BC =  50.045;     % > 0.5 OK
-KS = 149.59;      % > 0.1 OK
-Eps = 0.03507;   %0.095   % Molto a caso
+BC =  50.045;     % > 0.5 OK  very stable over 100, not so influent
+KS = 149.59;      % > 0.1 /10 OK very stable over 100, not so influent
+Eps = 0.03507;   %0.095     unstable and influent.
+
+%BC =   987.86;     % > 0.5 OK
+%KS =230.58;      % > 0.1 OK
+%Eps = 0.065299;   %0.095   % Molto a caso
 
 rng default
 model = fitrsvm(X_train,Y_train, BoxConstraint = BC, Epsilon = Eps, KernelScale=KS);
-%model = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",'auto', "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=30, ShowPlots=false));
+%model = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",'auto', "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=100, ShowPlots=false));
 
 %Results and plots
 R2 = loss(model,X_test, Y_test, 'LossFun', @Rsquared);
