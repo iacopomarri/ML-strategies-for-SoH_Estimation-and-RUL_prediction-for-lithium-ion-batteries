@@ -10,7 +10,7 @@ load("I_25_02_v2.mat")
 
 
 %% Extract the features dataset
-batt = I_8_20_v2;
+batt = B0005;
 start_range1 = 3.6;
 end_range1 = 4.1;
 
@@ -22,7 +22,15 @@ step = 0.01;
 [X1, Y1] = ExtractPartialCurve(batt,start_range1,step,end_range1);
 [X2, Y2] = ExtractPartialCurve(batt,start_range2,step,end_range2);
 
+%%
+Y1=Y1/Y1(1)
+figure()
+xlabel('Cycle #','FontSize',18 );
+ylabel('SoH','FontSize',18 );
 
+
+hold on
+plot(Y1, LineWidth=1.4)
 
 %% Plot the data over their measured voltage 
 clc
@@ -47,20 +55,26 @@ end
 
 
 figure()
-xlabel('Time') 
-ylabel('Voltage')
-title ('Charge curves')
+xlabel('Time','FontSize',18 );
+ylabel('Voltage','FontSize',18 );
+
 
 hold on
+xlim([0 3600])
+ylim([3.4 4.25])
 
-for i=1:1:length(charge_indices)
+j=0;
+colori = ["#ebd534", "#ebc934", "#ebbd34", "#ebab34", "#eb9634", "#eb7d34", "#eb6834" ];
+for i=1:25:length(charge_indices)
     %pause(0.2);
-    plot(charging_times{i}(1:end), charging_cycles{i}(1:end), "DisplayName", "Cycle " +int2str(i))
+    j=j+1;
+    plot(charging_times{i}(1:end), charging_cycles{i}(1:end), "DisplayName", "Cycle " +int2str(i), "Color", colori(j), LineWidth=1.4)
+    legend('Location','southeast','FontSize',14 );
     legend show
 end
 
 
-
+%%
 figure()
 xlabel('Time') 
 ylabel('Voltage')
@@ -85,11 +99,11 @@ load("I_25_02_v2.mat")
 %load('B00018.mat')
 
 clc
-start_range1 = 3.6;
-end_range1 = 3.7;
+start_range1 = 3.8;
+end_range1 = 4;
 step = 0.05;
 
-batt =I_25_02_v2;% I_8_20_v2;%B0005; 
+batt =B0005;%I_25_02_v2;% I_8_20_v2;%B0005; 
 
 
 
@@ -118,17 +132,18 @@ end
 
 
 figure()
-xlabel('Time') 
-ylabel('Voltage')
-title ('Partial Curves Model 1')
 hold on
+xlabel('Time','FontSize',18 );
+ylabel('Voltage','FontSize',18 );
+
+
+
 
 for i=1:1:length(charge_indices)
-    pause(0.05);
+    %pause(0.05);
     plot(charging_times1{i}, charging_cycles1{i}, "DisplayName", int2str(i))
     %legend show
 end
-
 
 
 
