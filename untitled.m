@@ -7,12 +7,12 @@ clearvars -except d net
 close all
 
 rng("default")
-
+load("../../Maleysia paper/net_for_RUL", "net");
 load("MIT_Disch_Features.mat")
-load("../../RUL features tries/3_3.4 V/Partial_MIT_features_3 to 3,4.mat");
+%load("../../RUL features tries/2.8_3 V/Partial_MIT_features_2,8 to 3.mat");
 %d = MITLoadingCode();
 
-ftr_idx = [2 3 4]; %variance deltaQ, integral temp, num cycle
+ftr_idx = [1 3 4]; %variance deltaQ, integral temp, num cycle
 numFeatures = numel(ftr_idx);
 
 numObservation = numel(X);
@@ -73,13 +73,19 @@ end
 [sequenceLengths,idx] = sort(sequenceLengths,'descend');
 X = X(idx);
 Y = Y(idx);
-
+    
 figure
-bar(sequenceLengths)
-xlabel("Sequence")
-ylabel("Length")
-title("Sorted Data")
+bar(sequenceLengths, "FaceColor","#e9a747")
+xlabel("Sample")
+ylabel("Length (cycles)")
+%title("Sorted Data")
+%% Box plot for dataset distribution
+histogram(sequenceLengths, "NumBins",15, "FaceColor","#e58642")
+hold on
+xlabel("Lifespan (cycles)",'FontSize',18 );
+%ylabel("",'FontSize',18 );
 
+title("40 bins")
 %% Remove longest (first 3) and shortests (last 2) instancies
 
 for i=1:3
@@ -260,7 +266,7 @@ layers = [ ...
 
 maxEpochs = 1200;
 miniBatchSize = 8;
-crossval = false;
+crossval = true;
 
 options = trainingOptions('adam', ...
     'Verbose',true,...   
@@ -387,17 +393,19 @@ options.OutputNetwork = 'best-validation-loss';
 
 %% Train final model
 
-%set validation options for training
-
-%options.MaxEpochs = 800;
-
-net = trainNetwork(XTrain,YTrain,layers,options);
+%net = trainNetwork(XTrain,YTrain,layers,options);
 
 
 %% Test Predictions
 
 YPred = predict(net,XTest,'MiniBatchSize',1);
+discard = 1;
 
+%remove last X points of noise
+for i=1:size(YTest,1)
+    YTest{i}(end+1-discard:end) = [];
+    YPred{i}(end+1-discard:end) = [];
+end
 %% Predict test samples
 
 %Xtest = Xtrain;
@@ -411,6 +419,7 @@ for i=1:size(XTest,1)
     error(i) = mean(YPred{i} - YTest{i});
    
     figure()
+    %subplot(1,2,1)
     hold on;
      ylim([0 size(YTest{i},2) + 25])
     %legend('location', 'best','FontSize',12);
@@ -419,6 +428,8 @@ for i=1:size(XTest,1)
     %title ('Features PCC         N° ' + string(i) +  '       Length: ' + string(size(X{i},1)+"        Policy: "+policy{i}), 'FontSize', 15);
     title ('Test sample '+string(i)+  '    Life cycles: ' + string(size(YTest{i},2)) +'    RMSE: '+string(rmse(i)), 'FontSize',18 ); 
     diff = size(YTest{i},2)-800;
+
+    
     
     %shadedplot(1:size(YTest{i},2), YTest{i}+40, YTest{i}-40, [0.7 0.7 1],'#7ca9fc');
     if diff>0
@@ -442,12 +453,40 @@ for i=1:size(XTest,1)
          xline(diff, '--', 'Color','r', 'LineWidth',1.5 ); %, 'DisplayName', "K = "+ num2str(120));
     end
     legend({'','','± 40', '','Measured','Predicted', 'Start of prediction'},'location', 'best','FontSize',12)
+
+
+
+%     err = abs(YTest{i}-YPred{i});
+%    % err = YTest{i}-YPred{i};
+%     err(end-discard:end) = [];
+%     subplot(1,2,2)
+%     hold on
+% 
+%     if diff>0
+%         plot(diff+1:diff+1+800, smooth(err(end-800:end)),'color','#e87917');
+%         xline(diff, '--', 'Color','r', 'LineWidth',1.5 ); %, 'DisplayName', "K = "+ num2str(120));
+%     else
+%         plot(smooth(err),'color','#e87917');
+%     end
+% 
+%     
+%     yline(40, '--', 'color', "#7ca9fc", 'LineWidth',1.5 ); %, 'DisplayName', "K = "+ num2str(120));
+% %     hold on
+% %     plot(YPred{idx(i)},'.-')
+% %     hold off
+%     
+%     %ylim([0 20 + 25])
+%     title("Test Observation " + idx(i))
+%     xlabel("Time Step")
+%     ylabel("RUL")
+%     ylim([0 60])
+%     xlim([0 size(YTest{i},2)])
+   
 end
 
 mean(rmse)
 
 
-    
 %% Visualize predictions on multiplot window
 
 % %idx = randperm(numel(YPred),4);
@@ -468,6 +507,183 @@ for i = idx%1:numel(idx)
 end
 legend(["Test Data" "Predicted"],'Location','southeast')
 
+%% Visualize only errors, on 3 plots
+
+idx = 1:4 %numel(YTest);
+figure()
+hold on
+title("Absolute error 1",'FontSize',18 );
+xlabel("Prediction cycle",'FontSize',18 );
+ylabel("Error",'FontSize',18 );
+ylim([-100 200])
+yline(0, '--','Color','blu', 'LineWidth',1.5 );
+
+for i = 1:size(idx,2)
+    results = (YTest{idx(i)}-YPred{idx(i)});
+   % results = abs(YTest{idx(i)}-YPred{idx(i)});
+   % results(end:end) = [];
+    plot(smooth(results), "DisplayName","Lifespan: " + num2str(size(YTest{idx(i)},2)+ " cycles"))
+end
+legend('Location','northeast','FontSize',12)
+
+
+idx = 5:7 %numel(YTest);
+figure()
+hold on
+title("Absolute error 2",'FontSize',18 );
+xlabel("Prediction cycle",'FontSize',18 );
+ylabel("Error",'FontSize',18 );
+ylim([-50 50]) 
+yline(0, '--','Color','blu', 'LineWidth',1.5 );
+for i = 1:size(idx,2)
+   
+   results = (YTest{idx(i)}-YPred{idx(i)});
+   % results = abs(YTest{idx(i)}-YPred{idx(i)});
+    %results(end:end) = [];
+    plot(smooth(results), "DisplayName","Lifespan: " + num2str(size(YTest{idx(i)},2)+ " cycles"))
+   
+     
+end
+legend('Location','northeast','FontSize',12)
+
+
+
+
+idx = 8:10 %numel(YTest);
+figure()
+hold on
+title("Absolute error 3",'FontSize',18 );
+xlabel("Prediction cycle",'FontSize',18 );
+ylabel("Error",'FontSize',18 );
+ylim([-50 50]) 
+yline(0, '--','Color','blu', 'LineWidth',1.5 );
+for i = 1:size(idx,2)%1:numel(idx)
+   
+     results = (YTest{idx(i)}-YPred{idx(i)});
+   % results = abs(YTest{idx(i)}-YPred{idx(i)});
+   % results(end-5:end) = [];
+    plot(smooth(results), "DisplayName","Lifespan: " + num2str(size(YTest{idx(i)},2)+ " cycles"))
+   
+      
+end
+legend('Location','northeast','FontSize',12)
+
+%% Visualize 3 plots errors inverted X
+
+colori = ["#fcba03",'#fc5603', '#0388fc'];
+idx = 1:4 %numel(YTest);
+figure()
+
+hold on
+%plot(flip(1:900),zeros(1,900));
+%title("Absolute error 1",'FontSize',18 );
+xlabel("RUL (cycles)",'FontSize',18 );
+ylabel("Error (cycles)",'FontSize',18 );
+ylim([-85 80])
+xlim([0 800])
+yline(0, '--','Color',"black", 'LineWidth',1.5,'HandleVisibility','off');
+
+for i = 1:size(idx,2)  
+    results = (YTest{idx(i)}-YPred{idx(i)});
+   % results = abs(YTest{idx(i)}-YPred{idx(i)});
+   % results(end:end) = [];
+    plot(smooth(results(end-800:end)), "DisplayName","Lifespan: " + num2str(size(YTest{idx(i)},2)+ " cycles"))      
+end
+
+legend('Location','northeast','FontSize',12)
+grid
+xt = get(gca, 'XTick');
+set(gca, 'XTickLabel', fliplr(xt))
+
+
+
+
+idx = 5:7 %numel(YTest);
+figure()
+
+hold on
+%plot(flip(1:900),zeros(1,900));
+%title("Absolute error 1",'FontSize',18 );
+xlabel("RUL (cycles)",'FontSize',18 );
+ylabel("Error (cycles)",'FontSize',18 );
+ylim([-15 35])
+xlim([0 800])
+yline(0, '--','Color',"black", 'LineWidth',1.5,'HandleVisibility','off');
+
+for i = 1:size(idx,2)
+    lunghezza = size(YTest{idx(i)},2);
+    differenza = 800 - lunghezza;
+    results = (YTest{idx(i)}-YPred{idx(i)});
+   % results = abs(YTest{idx(i)}-YPred{idx(i)});
+   % results(end:end) = [];
+   xaxis=(1:800-differenza)+differenza;
+    plot(xaxis, smooth(results()), "DisplayName","Lifespan: " + num2str(lunghezza)+ " cycles", "Color", colori(i))          
+end
+
+legend('Location','northeast','FontSize',12)
+
+grid
+xt = get(gca, 'XTick');
+set(gca, 'XTickLabel', fliplr(xt))
+
+
+
+
+
+
+idx = 8:10 %numel(YTest);
+figure()
+
+hold on
+xlabel("RUL (cycles)",'FontSize',18 );
+ylabel("Error (cycles)",'FontSize',18 );
+ylim([-15 25])
+xlim([0 500])
+yline(0, '--','Color',"black", 'LineWidth',1.5,'HandleVisibility','off');
+
+
+for i = 1:size(idx,2)
+    lunghezza = size(YTest{idx(i)},2);
+    differenza = 500 - lunghezza;
+    results = (YTest{idx(i)}-YPred{idx(i)});
+   % results = abs(YTest{idx(i)}-YPred{idx(i)});
+   % results(end:end) = [];
+    plot((1:500-differenza)+differenza, smooth(results()), "DisplayName","Lifespan: " + num2str(lunghezza)+ " cycles", "Color", colori(i))    
+   % xline(differenza, '--',"Color", colori(i), 'LineWidth',1,'HandleVisibility','off');
+end
+
+legend('Location','northeast','FontSize',12)
+
+grid
+xt = get(gca, 'XTick');
+set(gca, 'XTickLabel', fliplr(xt))
+%%
+aaa= (1:750-differenza)+differenza;
+
+
+%% Compute MeanAE, MaxAE, MeanRE
+idx = 1:10 %numel(YTest);
+MeanAE = [];
+MaxAE = [];
+MeanRE = [];
+Lifespans=[];
+
+
+for i = 1:size(idx,2)  
+    Lifespans(i)=size(YTest{idx(i)},2);
+    results = abs(YTest{idx(i)}-YPred{idx(i)});
+
+    if size(results,2)>800
+        results(1:end-800)=[];
+    end
+    MeanAE(i)=mean(results);
+    MaxAE(i)=max(results);
+    MeanRE(i)=MeanAE(i)/Lifespans(i);
+
+end
+
+
+
 %% RMSE of predictions
   
 for i = 1:numel(YTest)
@@ -480,3 +696,70 @@ histogram(error)
 title("Mean RMSE = " + mean(rmse))
 ylabel("Frequency")
 xlabel("Error: Predicted - Test")
+
+
+
+
+
+
+
+%% Plot the 100th value of the log var feature, for each batt. to compare it with MIT paper
+
+variance = [];
+mindelta = [];
+tempint = [];
+sequenceLengths = [];
+
+%cycle to plot
+k=100
+
+for i=1:size(X,1)
+    sequence = X{i};
+    %sequenceLengths(i) = size(sequence,2);
+
+    if size(X{i}, 2) >  k
+        sequenceLengths = [sequenceLengths size(sequence,2)];
+        variance = [variance X{i}(1,k)];
+        mindelta = [mindelta X{i}(2,k)];
+        tempint = [tempint X{i}(3,k)];
+    end
+end
+a = linspace(5,10,length(variance));
+
+figure()
+hold on
+
+scatter(variance, log10(sequenceLengths),50, a,"filled");
+ylabel('Log10  Sequence Length (cycles)','FontSize',18 );
+%xlabel('Log10  Var(DeltaQ)','FontSize',18 );
+
+xlabel(num2str("Log10  Var(DeltaQ), " + k +"th cycle" ),'FontSize',18 );
+
+figure()
+hold on
+
+scatter(mindelta, log10(sequenceLengths),50, a,"filled");
+ylabel('Log10  Sequence Length (cycles)','FontSize',18 );
+%xlabel('Log10  Min(DeltaQ)','FontSize',18 );
+
+xlabel(num2str("Log10  Min(DeltaQ), " + k +"th cycle" ),'FontSize',18 );
+
+
+figure()
+hold on
+
+scatter(tempint, log10(sequenceLengths),50, a, "filled");
+ylabel('Log10  Sequence Length (cycles)','FontSize',18 );
+%xlabel('Temperature sum (C°), cycle','FontSize',18 );
+
+xlabel(num2str("Temperature sum (C°), " + k +"th cycle" ),'FontSize',18 );
+
+
+
+
+
+
+
+%% save the net
+
+%save("../../Maleysia paper/net_for_RUL", "net");

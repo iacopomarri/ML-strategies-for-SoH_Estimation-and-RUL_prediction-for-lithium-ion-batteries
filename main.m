@@ -147,13 +147,25 @@ end
 
 
 
+%%
 
-%{
-%% PCA
-close;
-clc
-a = [X2 transpose(Y2)];
-[coeffs,score,~,~,expl] = pca(a);
-pareto(expl);
-%}
+bonus = [1736  2384   3365   3907   4232   4760  5348   5706   6321];
+nobonus = [6171  6680   6819   7187   7442   7752  8104   8550   8827];
+
+earn_bonus = diff(bonus);
+earn_nobonus = diff(nobonus);
+diff_earn = earn_bonus - earn_nobonus;
+
+figure()
+hold on
+plot(earn_nobonus,"DisplayName","no bonus")
+plot(earn_bonus,"DisplayName","bonus")
+legend show
+
+figure()
+hold on
+plot(diff_earn)
+
+total_nobonus = sum(earn_nobonus)
+total_bonus= sum(earn_bonus)
 

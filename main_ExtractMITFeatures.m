@@ -44,9 +44,9 @@ xlabel('DeltaQ','FontSize',18 );
 %f1 = figure();
 %f2 = figure();
 idx = [];
-%voltage_interp = linspace(2.05, 3.55, 2000);
+voltage_interp = linspace(2.05, 3.55, 2000);
 %voltage_interp = linspace(2.8, 3.1, 2000);
-voltage_interp = linspace(3.15, 3.4, 2000);
+%voltage_interp = linspace(2.8, 3, 2000);
 
 for batt = 1:numObservation 
     sample = d(batt);
@@ -70,7 +70,13 @@ for batt = 1:numObservation
     %Interpolate voltage of initial cycle
     interpolation = fit(Vdis_i, Qdis_i, 'linear');
     Qinterp_1 = interpolation(voltage_interp);
-       
+
+%        figure()
+%        hold on
+%        ylabel('Discharge capacity Q (Ah)','FontSize',18  );
+%         xlabel('Voltage (V)','FontSize',18 );
+%          legend('location', 'southwest','FontSize',12);
+%           plot(voltage_interp, Qinterp_1, 'DisplayName','Cycle 10');
 
     for k =1:size(sample.cycles, 2)
         %Extract cycle k, clean initial and last part
@@ -94,13 +100,21 @@ for batt = 1:numObservation
         interpolation = fit(Vdis_k, Qdis_k, 'linear');
         Qinterp_k = interpolation(voltage_interp);
     
-%         figure()
-%         hold on
-%         ylabel('Discharge Q (Ah)','FontSize',18 );
-%         xlabel('Voltage (V)','FontSize',18 );
-%         plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 700");
-%         plot(voltage_interp, Qinterp_1, 'DisplayName',' Cycle 10');
-%         legend('location', 'southwest','FontSize',12);
+%         if k==100
+%             plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 100");          
+%         end
+% 
+%         if k==300
+%             plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 300");          
+%         end
+% 
+%         if k==500
+%             plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 500");          
+%         end
+% 
+%         if k==700
+%             plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 700");          
+%         end
        
         %compute diff curve.
         deltaQ = Qinterp_k - Qinterp_1; 
@@ -108,13 +122,17 @@ for batt = 1:numObservation
         deltas{batt}(k,:) = deltaQ;
         
         %set k to the n cycle you want to plot
-        if(k==100)
-            %figure()
-            plot(deltaQ, voltage_interp);
-        end
+%         if(k==100)
+%             figure()
+%            plot(deltaQ, voltage_interp);
+%         end
     end
-   
-    
+end
+%%
+figure()
+hold on
+for b=1:numObservation
+    plot(deltas{b}(100,:), voltage_interp)
 end
 %% PLOT stuff
 % clearvars -except deltas d
@@ -219,7 +237,7 @@ tempint = [];
 sequenceLengths = [];
 
 %cycle to plot
-k=100
+k=700
 
 for i=1:size(X,1)
     sequence = X{i};
@@ -261,4 +279,4 @@ xlabel('Temperature sum (C°)','FontSize',18 );
 for i=1:124
     X{i} = X{i}';
 end
-save("../../RUL features tries/3.15_3.4 V/Partial_MIT_features_3,15 to 3,4.mat", "X", "Y");
+%save("../../RUL features tries/2.8_3 V/Partial_MIT_features_2,8 to 3.mat", "X", "Y");
