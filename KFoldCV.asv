@@ -54,12 +54,6 @@ function Cross_valid_R2 = KFoldCV(k, Xtrain, Ytrain, ftr_idx, BC, Eps, KS, Kerne
              BoxConstraint = BC, Epsilon = Eps, KernelScale=KS, KernelFunction=Kernel, Standardize=true);
      
          Cross_valid_R2(i) = loss(cross_model,X_crossval_valid, Y_crossval_valid, 'LossFun', @Rsquared);
-
-         if Verbose == true
-              
-              fprintf('   ET: %f', toc);    % int2str(i)
-              fprintf(' sec \n');
-         end
     end
 
     %Return value

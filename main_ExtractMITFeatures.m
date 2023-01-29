@@ -44,7 +44,7 @@ xlabel('DeltaQ','FontSize',18 );
 %f1 = figure();
 %f2 = figure();
 idx = [];
-voltage_interp = linspace(2.05, 3.55, 2000);
+voltage_interp = linspace(3.25, 3.4, 2000);
 %voltage_interp = linspace(2.8, 3.1, 2000);
 %voltage_interp = linspace(2.8, 3, 2000);
 
@@ -134,6 +134,8 @@ hold on
 for b=1:numObservation
     plot(deltas{b}(100,:), voltage_interp)
 end
+
+savefig("../../RUL features tries/2.4_2.6 V/delta_curves_2.4_2.6.fig");
 %% PLOT stuff
 % clearvars -except deltas d
 % load("deltas.mat");
@@ -257,12 +259,15 @@ hold on
 ylabel('Log10  Sequence Length','FontSize',18 );
 xlabel('Log10  Var(DeltaQ)','FontSize',18 );
 scatter(variance, log10(sequenceLengths),50, a,"filled");
+savefig("../../RUL features tries/3.25_3.4 V/var_3.25_3.4.fig");
 
 figure()
 hold on
 ylabel('Log10  Sequence Length','FontSize',18 );
 xlabel('Log10  Min(DeltaQ)','FontSize',18 );
 scatter(mindelta, log10(sequenceLengths),50, a,"filled");
+
+savefig("../../RUL features tries/3.25_3.4 V/min_3.25_3.4.fig");
 
 figure()
 hold on
@@ -271,6 +276,7 @@ hold on
 scatter(tempint, log10(sequenceLengths),50, a, "filled");
 ylabel('Log10  Sequence Length','FontSize',18 );
 xlabel('Temperature sum (C°)','FontSize',18 );
+savefig("../../RUL features tries/3.25_3.4 V/temp_3.25_3.4.fig");
 
 %%
 %save("Partial_MIT_features_3 to 3,4.mat", "X", "Y");
@@ -279,4 +285,4 @@ xlabel('Temperature sum (C°)','FontSize',18 );
 for i=1:124
     X{i} = X{i}';
 end
-%save("../../RUL features tries/2.8_3 V/Partial_MIT_features_2,8 to 3.mat", "X", "Y");
+save("../../RUL features tries/3.25_3.4 V/Partial_MIT_features_3,25 to 3,4.mat", "X", "Y");
