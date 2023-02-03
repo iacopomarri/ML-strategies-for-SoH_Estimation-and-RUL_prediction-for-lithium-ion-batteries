@@ -9,13 +9,13 @@ rng(3)
 
 removeIrregularities = true;
 load("MIT_PCC_Features.mat"); %Load this only for Ysoh
-numWindow = [3.15 3.4];  %change this to perform the process on a different window
+numWindow = [3 3.4];  %change this to perform the process on a different window
 
 stringWindow = num2str(numWindow(1) + "_" +num2str(numWindow(2)) + " V");
 dashedWindow = num2str(numWindow(1) + "-" +num2str(numWindow(2)) + " V");
 %X = load("MIT_features.mat").X;
 
-X = load("../../RUL features tries/"+ stringWindow +"/Partial_MIT_features_3,15 to 3,4.mat").X;
+X = load("../../RUL features tries/"+ stringWindow +"/Partial_MIT_features_3 to 3,4.mat").X;
 
 
 Y = Y_SoH;

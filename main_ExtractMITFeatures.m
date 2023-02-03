@@ -241,6 +241,12 @@ sequenceLengths = [];
 %cycle to plot
 k=700
 
+% X = Xtemp
+% %REMOVE THIS AFTER
+% for i=1:124
+%     X{i} = X{i}';
+% end
+
 for i=1:size(X,1)
     sequence = X{i};
     %sequenceLengths(i) = size(sequence,2);
@@ -276,7 +282,7 @@ hold on
 scatter(tempint, log10(sequenceLengths),50, a, "filled");
 ylabel('Log10  Sequence Length','FontSize',18 );
 xlabel('Temperature sum (C°)','FontSize',18 );
-savefig("../../RUL features tries/3.25_3.4 V/temp_3.25_3.4.fig");
+%savefig("../../RUL features tries/3.25_3.4 V/temp_3.25_3.4.fig");
 
 %%
 %save("Partial_MIT_features_3 to 3,4.mat", "X", "Y");
