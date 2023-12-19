@@ -3,10 +3,10 @@
 %SVR optimized on 2 batteries, validated on the third.
 %SVR used for fitting B5 (optimized and validated on B5).
 %% Setting up datasets
-close all
+%close all
 clearvars  -except d
 clc
-
+close all
 
 %% Building feature sets for each battery
 load('B0005.mat');
@@ -23,7 +23,7 @@ nom_capacity18 = B0018.cycle(3).data.Capacity;
 %Build datasets from batteries
 start_range1 = 3.9; %3.9;
 end_range1 = 4; %4;
-step = 0.05;%0.1;
+step = 0.1;%0.1;
 
 %{
 X_5 = [X_5 ExtractTotalMovedCharge(B0005)];
@@ -42,6 +42,9 @@ X_18 = ExtractTotalMovedCharge(B0018);
 [X_7, Y_7] = ExtractPartialCurve(B0007,start_range1,step,end_range1);
 [X_18, Y_18] = ExtractPartialCurve(B0018,start_range1,step,end_range1);
 
+for i=1:size(X_18,2)
+    X_18(:,i) = smooth(X_18(:,i))
+end
 Y_5 = Y_5/nom_capacity5;
 Y_6 = Y_6/nom_capacity6;
 Y_7 = Y_7/nom_capacity7;
@@ -59,11 +62,30 @@ Y_18 = Y_18/nom_capacity18;
 
 
 
+%%
+figure()
+hold on
+title ('B0018', 'FontSize', 12);
+xlabel('# cycle','FontSize',18 );
+ylabel('Charge time','FontSize',18 );
+plot(Y_18)
+plot(Y_6)
+legend show
 
 
 
+%% Visualize features over number of cycle B18
+a=start_range1:step:end_range1;
 
-
+figure()
+hold on
+title ('B0018', 'FontSize', 12);
+xlabel('# cycle','FontSize',18 );
+ylabel('Charge time','FontSize',18 );
+plot(X_18)
+legend(string(a) + ' - ' + string(a+step) + ' V', 'location', 'best','FontSize',16);
+cleanfigure('minimumPointsDistance', 0.1)
+%matlab2tikz('..\..\thesis\B0007_PCC_Features.tex');
 
 %% Visualize features over number of cycle B5
 
@@ -71,7 +93,7 @@ a=start_range1:step:end_range1;
 
 figure()
 hold on
-%title ('PCC Voltage steps charge time  -  B0005', 'FontSize', 12);
+title ('B0005', 'FontSize', 12);
 xlabel('# cycle','FontSize',18 );
 ylabel('Charge time','FontSize',18 );
 plot(X_5)
@@ -82,7 +104,7 @@ legend(string(a) + ' - ' + string(a+step) + ' V', 'location', 'best','FontSize',
 %% Visualize features over number of cycle B6
 figure()
 hold on
-%title ('PCC Voltage steps charge time  -  B0006', 'FontSize', 12);
+title ('B0006', 'FontSize', 12);
 xlabel('# cycle' ,'FontSize',18 );
 ylabel('Charge time','FontSize',18 );
 plot(X_6)
@@ -93,7 +115,7 @@ cleanfigure('minimumPointsDistance', 0.1)
 %% Visualize features over number of cycle B7
 figure()
 hold on
-%title ('PCC Voltage steps charge time  -  B0007', 'FontSize', 12);
+title ('B0007', 'FontSize', 12);
 xlabel('# cycle','FontSize',18 );
 ylabel('Charge time','FontSize',18 );
 plot(X_7)
@@ -101,23 +123,13 @@ legend(string(a) + ' - ' + string(a+step) + ' V', 'location', 'best','FontSize',
 cleanfigure('minimumPointsDistance', 0.1)
 %matlab2tikz('..\..\thesis\B0007_PCC_Features.tex');
 
-%% PCA analysis on all data
-% clc
-% X_train = vertcat(X_5, X_6, X_7);
-% Y_train = [Y_5 Y_6 Y_7];
-% 
-% %PCA
-% figure()
-% a = [X_train transpose(Y_train)];
-% [coeffs,score,~,~,expl] = pca(a);
-% pareto(expl);
 
 %% Optimize parameters for all 3 batteries (if fit() is commented is because in the next section, best found parameters are hardcoded and used).
 %you may not need to run this section since best parameters are already
 %hardcoded
 % Models, Results and plots
 
-clc
+
 X_train = vertcat(X_5, X_6, X_7);
 Y_train = [Y_5 Y_6 Y_7];
 
@@ -131,7 +143,7 @@ Kernel = 'linear';
 
 rng default
 hyperpar = ["BoxConstraint", "KernelScale", "Epsilon"];
-model_1 = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",hyperpar, "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=100));
+%model_1 = fitrsvm(X_train,Y_train,  "OptimizeHyperparameters",hyperpar, "HyperparameterOptimizationOptions", struct(MaxObjectiveEvaluations=100));
 BC = 0.001052; %model_1.ModelParameters.BoxConstraint;       
 KS = 21.344; %model_1.ModelParameters.KernelScale;
 Eps = 0.00128; %model_1.ModelParameters.Epsilon;   
@@ -145,16 +157,57 @@ ylabel('SoH','FontSize',18 );
 %title ('SVR error on B0005/6/7','FontSize',18 );
 
 %% Compute the test error performing a LOOCV between all batteries we have
+parametri = load('../../SoH Nasa experiments/3.9_4 V/Step 0.05/SoH Nasa Results/Loocv matlab data/pyramid_SVM_cv_R2_3.9-4 V.mat')
 
+%FOR SVR
+multiplcationFactors = 0.0001:0.005:5;
+
+BCmultiplcationFactors = [0.0001:0.001:1 1:0.05:3];
+KSmultiplcationFactors = 0.0001:0.05:7;
+EpsmultiplcationFactors = [0.0001:0.001:1 1:0.05:3];
+
+%Values to test
+BCs = BCmultiplcationFactors*BC;
+KSs = KSmultiplcationFactors*KS;
+Epss = EpsmultiplcationFactors*Eps;
+
+[~,BCindex] = max(parametri.BC_cvR2);
+[~, KSindex] = max(parametri.KS_cvR2);
+[~, Epsindex] = max(parametri.Eps_cvR2);
+BC = BCs(BCindex);
+KS = KSs(KSindex); 
+Eps = Epss(Epsindex); 
+%%
+maxNumSplits = 19
+numTrees = 21
+
+
+dati = cell(3,1)
+datiY = cell(3,1)
+
+dati{1}=X_5
+dati{2}=X_6
+dati{3}=X_7
+
+datiY{1}=Y_5'
+datiY{2}=Y_6'
+datiY{3}=Y_7'
+%LooCV_RF(dati, datiY, numTrees, maxNumSplits, false)
+
+%%
+figure
+hold on
 X_train = vertcat(X_6, X_7);
 Y_train = [Y_6 Y_7];
 X_test = X_5;
 Y_test = Y_5;
 %Fit model, compute prediction and R2
-model_a = fitrsvm(X_train,Y_train, BoxConstraint = BC, Epsilon = Eps, KernelScale=KS, KernelFunction=Kernel);
-R2a = loss(model_a,X_test, Y_test, 'LossFun', @Rsquared);
-R2a_train = loss(model_a, X_train, Y_train, 'LossFun', @Rsquared);
+%model_a = fitrsvm(X_train,Y_train, BoxConstraint = BC, Epsilon = Eps, KernelScale=KS, KernelFunction=Kernel);
+model_a = TreeBagger(numTrees, X_train, Y_train, 'Method', 'regression', 'MaxNumSplits', maxNumSplits, 'InBagFraction',0.33);
+%R2a = loss(model_a,X_test, Y_test, 'LossFun', @Rsquared);
+%R2a_train = loss(model_a, X_train, Y_train, 'LossFun', @Rsquared);
 pred_a = predict(model_a,X_test);
+R2a = 1 - sum((Y_test - pred_a').^2) / sum((Y_test - mean(Y_test)).^2);
 plot([1:length(Y_test)], Y_test, 'r', 'DisplayName', "Measured B5");
 plot ([1:length(Y_test)], pred_a,'r--', 'DisplayName', "Estimated B5: R^2: "+ num2str(R2a));
 
@@ -165,9 +218,11 @@ X_test = X_6;
 Y_test = Y_6;
 %Fit model, compute prediction and R2
 model_b = fitrsvm(X_train,Y_train, BoxConstraint = BC, Epsilon = Eps, KernelScale=KS, KernelFunction=Kernel);
-R2b = loss(model_b,X_test, Y_test, 'LossFun', @Rsquared);
-R2b_train = loss(model_b, X_train, Y_train, 'LossFun', @Rsquared);
+model_b = TreeBagger(numTrees, X_train, Y_train, 'Method', 'regression', 'MaxNumSplits', maxNumSplits, 'InBagFraction',0.33);
+%R2b = loss(model_b,X_test, Y_test, 'LossFun', @Rsquared);
+%R2b_train = loss(model_b, X_train, Y_train, 'LossFun', @Rsquared);
 pred_b = predict(model_b,X_test);
+R2b = 1 - sum((Y_test - pred_b').^2) / sum((Y_test - mean(Y_test)).^2);
 plot ([1:length(Y_test)], Y_test,'b', 'DisplayName', "Measured B6");
 plot ([1:length(Y_test)], pred_b,'b--', 'DisplayName', "Estimated B6: R^2: "+ num2str(R2b));
 
@@ -178,17 +233,21 @@ X_test = X_7;
 Y_test = Y_7;
 %Fit model, compute prediction and R2
 model_c = fitrsvm(X_train,Y_train, BoxConstraint = BC, Epsilon = Eps, KernelScale=KS, KernelFunction=Kernel);
-R2c = loss(model_c,X_test, Y_test, 'LossFun', @Rsquared);
+model_c = TreeBagger(numTrees, X_train, Y_train, 'Method', 'regression', 'MaxNumSplits', maxNumSplits, 'InBagFraction',0.33);
+%R2c = loss(model_c,X_test, Y_test, 'LossFun', @Rsquared);
 pred_c = predict(model_c,X_test);
-R2c_train = loss(model_c, X_train, Y_train, 'LossFun', @Rsquared);
+R2c = 1 - sum((Y_test - pred_c').^2) / sum((Y_test - mean(Y_test)).^2);
+%R2c_train = loss(model_c, X_train, Y_train, 'LossFun', @Rsquared);
 plot ([1:length(Y_test)], Y_test,'g', 'DisplayName', "Measured B7");
 plot ([1:length(Y_test)], pred_c,'g--', 'DisplayName', "Estimated B7: R^2: "+ num2str(R2c));
 
 R2 = (R2a+R2b+R2c)/3;
 
-error_text = ["Mean R^2: " num2str(R2)];
-subtitle(error_text);
-
+% error_text = ["Mean R^2: " num2str(R2)];
+% subtitle(error_text);
+legend('location', 'best','FontSize',8);
+xlabel('Cycle number','FontSize',18 );
+ylabel('SoH','FontSize',18 );
 % cleanfigure('minimumPointsDistance', 0.1)
 % matlab2tikz('..\..\thesis\NASA_results.tex');
 

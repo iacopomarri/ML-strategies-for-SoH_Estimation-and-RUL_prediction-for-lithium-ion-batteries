@@ -11,17 +11,18 @@ end
 numObservation = numel(d);
 
 %%
-plot(d(1).cycles(1).V)
-xlabel('Time') 
-ylabel('Voltage (V)');
-%cleanfigure('minimumPointsDistance', 0.1)
-%matlab2tikz('..\..\thesis\MIT_voltage_profile.tex');
 
-plot(d(20).summary.QDischarge)
-xlabel('Timesteps (cycles)') 
-ylabel('Capacity (Ah)');
-%cleanfigure('minimumPointsDistance', 0.1)
-%matlab2tikz('..\..\thesis\MIT_degradation_sample.tex');
+% plot(d(1).cycles(1).V)
+% xlabel('Time') 
+% ylabel('Voltage (V)');
+% %cleanfigure('minimumPointsDistance', 0.1)
+% %matlab2tikz('..\..\thesis\MIT_voltage_profile.tex');
+% 
+% plot(d(20).summary.QDischarge)
+% xlabel('Timesteps (cycles)') 
+% ylabel('Capacity (Ah)');
+% %cleanfigure('minimumPointsDistance', 0.1)
+% %matlab2tikz('..\..\thesis\MIT_degradation_sample.tex');
 
 
 %% Extract discharge curve for all cycles, subtract with cycle 10 --> deltas. 
@@ -37,18 +38,22 @@ numFeatures = 3;
 deltas = cell(numObservation,1);
 
 
-figure()
-hold on
-ylabel('Voltage (V)','FontSize',18 );
-xlabel('DeltaQ','FontSize',18 );
+
 %f1 = figure();
 %f2 = figure();
 idx = [];
 voltage_interp = linspace(3.25, 3.4, 2000);
+voltage_interp = linspace(2, 3.4, 2000);
 %voltage_interp = linspace(2.8, 3.1, 2000);
 %voltage_interp = linspace(2.8, 3, 2000);
+figure
+hold on
+tic
 
-for batt = 1:numObservation 
+Qs = []
+Ks = []
+
+parfor batt = 1:numObservation 
     sample = d(batt);
     
     %Extract cycle 10, clean initial and last part (before max, after min)
@@ -100,34 +105,110 @@ for batt = 1:numObservation
         interpolation = fit(Vdis_k, Qdis_k, 'linear');
         Qinterp_k = interpolation(voltage_interp);
     
-%         if k==100
-%             plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 100");          
-%         end
-% 
-%         if k==300
-%             plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 300");          
-%         end
-% 
-%         if k==500
-%             plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 500");          
-%         end
-% 
-%         if k==700
-%             plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 700");          
-%         end
-       
+        if k==100
+            plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 100");
+        end
+
+        if k==300
+            plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 300");          
+        end
+
+        if k==500
+            plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 500");          
+        end
+
+        if k==700
+            plot(voltage_interp,Qinterp_k, 'DisplayName',"Cycle 700");          
+        end
+        if batt==50
+            Qs = vertcat(Qs, Qinterp_k');
+            Ks = [Ks k];
+        end
         %compute diff curve.
         deltaQ = Qinterp_k - Qinterp_1; 
-        
         deltas{batt}(k,:) = deltaQ;
-        
-        %set k to the n cycle you want to plot
-%         if(k==100)
-%             figure()
-%            plot(deltaQ, voltage_interp);
-%         end
     end
 end
+toc
+
+%% Sort data by length of the sequences.
+
+for i=1:numObservation
+    sequence = deltas{i}(:,1);
+    sequenceLengths(i) = size(sequence,1);
+end
+
+[sequenceLengths,idx] = sort(sequenceLengths,'descend');
+deltas = deltas(idx);
+%Y = Y(idx);
+
+%% Plot discharge curves with colormap
+% Define the colormap to be used
+color_map = parula(50) %flipud(hot(256)); % red to blue
+color_map = flip(color_map)
+
+figure()    
+hold on
+ylabel('Discharge Q (Ah)','FontSize',18 );
+xlabel('Voltage (V)','FontSize',18 );
+
+cycles = 10:11:500
+
+step=cycles(2)-cycles(1)
+min_k = min(cycles);
+max_k = max(cycles);
+length_range = max_k - min_k;
+
+for k = min_k:step:max_k
+    % Compute the color index for this line
+    length_offset = k - min_k;
+    color_idx = round(1 + (size(color_map, 1) - 1) * length_offset / length_range);
+
+    plot(voltage_interp,Qs(k,:),'Color', color_map(color_idx,:));
+end
+% 'DisplayName',"Cycle "+string(k),
+
+% Set the color axis limits
+caxis([min_k, max_k]);
+
+% Set the colorbar and its labels
+cb = colorbar;
+cb.Label.String = ' (Number of cycle)';
+colormap(color_map);
+%% Plot deltas with colormap 
+
+% Define the colormap to be used
+color_map = flipud(parula(256)); % red to blue
+
+figure()
+hold on
+
+ylabel('Voltage (V)','FontSize',18 );
+xlabel('DeltaQ','FontSize',18 );
+
+
+k=200
+for batt = 1:numObservation
+     % Compute the color index for this line
+    min_length = min(sequenceLengths);
+    max_length = max(sequenceLengths);
+    length_range = max_length - min_length;
+    length_offset = sequenceLengths(batt) - min_length;
+    color_idx = round(1 + (size(color_map, 1) - 1) * length_offset / length_range);
+
+    if size(deltas{batt},1) > k
+        plot(deltas{batt}(k,:), voltage_interp, 'Color', color_map(color_idx,:));
+    end
+end
+
+
+% Set the color axis limits
+caxis([min_length, max_length]);
+
+% Set the colorbar and its labels
+cb = colorbar;
+cb.Label.String = 'Battery lifespan (Cycles)';
+colormap(color_map);
 %%
 figure()
 hold on
@@ -135,7 +216,7 @@ for b=1:numObservation
     plot(deltas{b}(100,:), voltage_interp)
 end
 
-savefig("../../RUL features tries/2.4_2.6 V/delta_curves_2.4_2.6.fig");
+%savefig("../../RUL features tries/2.4_2.6 V/delta_curves_2.4_2.6.fig");
 %% PLOT stuff
 % clearvars -except deltas d
 % load("deltas.mat");
@@ -233,62 +314,103 @@ Y = Y(idx);
 
 %% Plot the 100th value of the log var feature, for each batt. to compare it with MIT paper
 
+X = load("MIT_features.mat").X;
+
 variance = [];
 mindelta = [];
 tempint = [];
 sequenceLengths = [];
 
 %cycle to plot
-k=700
-
-% X = Xtemp
-% %REMOVE THIS AFTER
-% for i=1:124
-%     X{i} = X{i}';
-% end
+k=200
 
 for i=1:size(X,1)
     sequence = X{i};
-    %sequenceLengths(i) = size(sequence,2);
 
-    if size(X{i}, 2) >  k
-        sequenceLengths = [sequenceLengths size(sequence,2)];
-        variance = [variance X{i}(1,k)];
-        mindelta = [mindelta X{i}(2,k)];
-        tempint = [tempint X{i}(3,k)];
+    if size(X{i}, 1) >  k
+        sequenceLengths = [sequenceLengths size(sequence,1)];
+        variance = [variance X{i}(k,1)];
+        mindelta = [mindelta X{i}(k,2)];
+        tempint = [tempint X{i}(k,3)];
     end
 end
-a = linspace(5,10,length(variance));
 
+%a = linspace(5,10,length(variance));
+
+a =max(sequenceLengths) * (sequenceLengths - min(sequenceLengths)) / (max(sequenceLengths) - min(sequenceLengths));
+color_map = flipud(parula(256)); % red to blue
 figure()
 hold on
-ylabel('Log10  Sequence Length','FontSize',18 );
-xlabel('Log10  Var(DeltaQ)','FontSize',18 );
-scatter(variance, log10(sequenceLengths),50, a,"filled");
-savefig("../../RUL features tries/3.25_3.4 V/var_3.25_3.4.fig");
+ylabel('Sequence Length','FontSize', 18);
+xlabel('Log10 Var(DeltaQ)','FontSize', 18);
+%scatter(variance, sequenceLengths, 50, "#0000FF", 'filled');
+scatter(variance, sequenceLengths, 50, 'filled', 'MarkerFaceColor', "#0072BD");
 
+
+
+%"1799fc"
 figure()
 hold on
-ylabel('Log10  Sequence Length','FontSize',18 );
+%ylabel('Log10  Sequence Length','FontSize',18 );
 xlabel('Log10  Min(DeltaQ)','FontSize',18 );
-scatter(mindelta, log10(sequenceLengths),50, a,"filled");
+%cb = colorbar;
+%cb.Label.String = 'Battery lifespan (Cycles)';
+caxis([min(sequenceLengths), max(sequenceLengths)]);
+scatter(mindelta, sequenceLengths,50,"filled", 'MarkerFaceColor', "#0072BD");
 
-savefig("../../RUL features tries/3.25_3.4 V/min_3.25_3.4.fig");
+%savefig("../../RUL features tries/3.25_3.4 V/min_3.25_3.4.fig");
 
-figure()
-hold on
-
-
-scatter(tempint, log10(sequenceLengths),50, a, "filled");
-ylabel('Log10  Sequence Length','FontSize',18 );
-xlabel('Temperature sum (C°)','FontSize',18 );
+% figure()
+% hold on
+% 
+% 
+% scatter(tempint, log10(sequenceLengths),50, a, "filled");
+% ylabel('Log10  Sequence Length','FontSize',18 );
+% xlabel('Temperature sum (C°)','FontSize',18 );
 %savefig("../../RUL features tries/3.25_3.4 V/temp_3.25_3.4.fig");
 
 %%
 %save("Partial_MIT_features_3 to 3,4.mat", "X", "Y");
 %%
 
-for i=1:124
+% for i=1:124
+%     X{i} = X{i}';
+% end
+%save("../../RUL features tries/3.25_3.4 V/Partial_MIT_features_3,25 to 3,4.mat", "X", "Y");
+
+
+%% PLot the features
+clc
+features = load("MIT_features.mat").X;
+Y = load("MIT_PCC_Features.mat").Y_SoH; %Load this only for Ysoh
+
+
+% Transpose dataset, normalize it, transpose it back
+
+%Transpose
+for i=1:numObservation
     X{i} = X{i}';
 end
-save("../../RUL features tries/3.25_3.4 V/Partial_MIT_features_3,25 to 3,4.mat", "X", "Y");
+
+% Normalize features values (0 mean, 1 variance)
+mu = mean([X{:}],2);
+
+sig = std([X{:}],0,2);
+
+for i = 1:numel(X)
+    X{i} = (X{i} - mu) ./ sig;
+end
+
+%Transpose back 
+ for i=1:numObservation
+     X{i} = X{i}';
+ end
+
+b = 100
+figure
+hold on 
+plot(X{b}(:,1), 'DisplayName', "Var feature", LineWidth=1.5);
+plot(X{b}(:,2), 'DisplayName', "Min feature", LineWidth=1.5);
+plot(X{b}(:,3), 'DisplayName', "Integral temperature", LineWidth=1.5);
+
+legend(Location="se", FontSize = 14)

@@ -13,7 +13,7 @@ Y = Y_SoH;
 
 X2 = load("MIT_features.mat").X;
 %X3 = load("Partial_MIT_features.mat").X;
-X3 = load("../../RUL features tries/2.9_3 V/Partial_MIT_features_2,9 to 3.mat").X;
+X3 = load("../../Papers/RUL features tries/2.9_3 V/Partial_MIT_features_2,9 to 3.mat").X;
 for i=1:124
     X3{i} = X3{i}';
 end

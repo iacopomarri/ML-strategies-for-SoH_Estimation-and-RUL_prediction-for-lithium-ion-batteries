@@ -1,6 +1,6 @@
 %% Cross Validation for different voltage windows, to find for each, best model, best HP.
 close all
-clearvars  -except d
+clear all
 clc
     
 rng(3) 
@@ -15,12 +15,28 @@ stringWindow = num2str(numWindow(1) + "_" +num2str(numWindow(2)) + " V");
 dashedWindow = num2str(numWindow(1) + "-" +num2str(numWindow(2)) + " V");
 %X = load("MIT_features.mat").X;
 
-X = load("../../RUL features tries/"+ stringWindow +"/Partial_MIT_features_3 to 3,4.mat").X;
+X = load("../../Papers/RUL features tries/"+ stringWindow +"/Partial_MIT_features_3 to 3,4.mat").X;
 
 
 Y = Y_SoH;
 numObservation = numel(X);
 clear Y_RUL
+
+%% Plot sequencies length
+lengths = []
+for i=1:size(Y,1)
+    lengths(i) = size(Y{i},2);
+end
+close all
+
+figure
+bar(lengths, FaceColor=[3/255 177/255 252/255])
+xlabel("Sequence",'FontSize',18 );
+ylabel("Length (cycles)",'FontSize',18 );
+
+
+
+
 %%
 % 
 % numObservation = numel(X);
@@ -35,7 +51,7 @@ clear Y_RUL
 %     end
 % end
 
-%% Find noisy samples, plot and remove them
+%% Find noisy samples, plot and remove them   4  71  110   117
 
 if(removeIrregularities)
     %plot all SoHs
@@ -70,6 +86,120 @@ if(removeIrregularities)
     %recompute num obsv
     numObservation = numel(X);
 end
+
+
+%% Plot SoH
+
+figure
+hold on
+
+ylabel('SoH','FontSize',18 );
+xlabel('Number of cycle','FontSize',18 );
+xlim([0,1200]);
+%ylim([0.88, 1.01])
+
+% for i=1:1:numObservation
+%     plot(Y{i})
+% end
+
+for i=1:numObservation
+    sequence = Y{i}(1,:);
+    sequenceLengths(i) = size(sequence,2);
+end
+
+
+color_map = parula(256) %flipud(hot(256)); % red to blue
+
+
+
+min_length = min(sequenceLengths);
+max_length = max(sequenceLengths);
+    
+for k=1:numObservation
+
+    length_range = max_length - min_length;
+    length_offset = sequenceLengths(k) - min_length;
+    color_idx = round(1 + (size(color_map, 1) - 1) * length_offset / length_range);
+
+    plot(Y{k},'Color', color_map(color_idx,:), 'LineWidth',2);
+end
+% 'DisplayName',"Cycle "+string(k),
+
+% Set the color axis limits
+caxis([min_length, max_length]);
+
+% Set the colorbar and its labels
+cb = colorbar;
+cb.Label.String = ' Battery lifespan (Cycles)';
+colormap(color_map);
+
+%%
+
+%%  4 60 71 72  89 110 117          noisy: 4  71  110   117       weird shape:   60:771    72:666    89:540   ??:545   weird in test:   771,  545
+%close all
+
+%order sequencies
+sequenceLengths = [];
+for i=1:numel(X)
+    sequence = X{i};
+    sequenceLengths(i) = size(sequence,1);
+end
+
+[sequenceLengths,idx] = sort(sequenceLengths,'descend');
+X = X(idx);
+Y_SoH= Y_SoH(idx);
+Y= Y(idx);
+policy = policy(idx);
+
+
+% figure ()
+% hold on
+% for i=[60,  72, 89]
+%     plot(Y_SoH{i})
+% endi
+%clear_ind = [4, 60, 72, 89, 71, 110, 117];
+%noise = [4, 71, 110, 117];
+weird = [59, 83];
+test = [1,2,3,5,6,7,8,9,10,11,12,14,15]
+
+indices = (1:numObservation);
+clean = indices;
+%no_weird = indices;
+% no_noise = indices;
+
+
+for i=1:size(weird,2)
+    clean = clean(find(clean~=weird(i)));
+end
+
+% for i=1:size(weird,2)
+%     no_weird = no_weird(find(no_weird~=weird(i)));
+% end
+
+% for i=1:size(noise,2)
+%     no_noise = no_noise(find(no_noise~=noise(i)));
+% end
+%% PLOT 3 GROUPS DIVIDED BY LENGTH
+figure ()
+hold on
+for i=indices(1:40)
+    plot(Y_SoH{i})
+end
+
+
+figure ()
+hold on
+for i=indices(41:80)
+    plot(Y_SoH{i})
+end
+
+
+figure ()
+hold on
+for i=indices(81:end)
+    plot(Y_SoH{i})
+end
+
 %% Transpose dataset, normalize it, transpose it back
 
 %Transpose
@@ -122,6 +252,113 @@ for i=1:testSize
     Ytrain(idx(i)) = [];
 end 
 
+%% INTERPOLATE THE CURVES, SAVE EM IN "normalizedX"
+clc
+normalizedX = {}
+normalizedTest = {}
+
+figure()
+hold on
+fitting_freq = 200;
+for i=clean
+    interp_x = 1:size(Y_SoH{i},2);
+    len_interp = linspace(0, interp_x(end), fitting_freq);
+    
+    
+    interpolation = fit(interp_x', smooth(Y_SoH{i}'),'linear');
+    interp_y = interpolation(len_interp);
+
+    plot(interp_y, color="b");
+    normalizedX{i} = interp_y';
+end
+
+for i=weird
+    interp_x = 1:size(Y_SoH{i},2);
+    len_interp = linspace(0, interp_x(end), fitting_freq);
+    
+    
+    interpolation = fit(interp_x', smooth(Y_SoH{i}'),'linear');
+    interp_y = interpolation(len_interp);
+
+    plot(interp_y, color="r");
+    normalizedX{i} = interp_y';
+end
+
+for i=1:size(Ytest,1)%test
+    interp_x = 1:size(Ytest{i},2);
+    len_interp = linspace(0, interp_x(end), fitting_freq);
+    
+    
+    interpolation = fit(interp_x', smooth(Ytest{i}'),'linear');
+    interp_y = interpolation(len_interp);
+
+    normalizedTest{i} = interp_y';
+end
+%%  DEFINE GROUPS 1 AND 2 FOR NORMAL CURVES AND FOR THE 3 ABNORMAL CURVES
+prove = []
+groups = []
+j=1
+
+for i=clean
+    prove =vertcat(prove, normalizedX{i});
+    groups = [groups "Dataset quantile"];
+    j = j+1;
+end
+
+for i=weird
+    prove = vertcat(prove, normalizedX{i});
+    groups = [groups "Dataset quantile"];
+    j = j+1;
+end
+       
+% for i=weird
+%     prove = vertcat(prove, normalizedX{i})
+%     groups = [groups "2 bad test samples"]
+%     j = j+1
+% end
+
+for i=test %1:size(normalizedTest,2)
+    prove = vertcat(prove, normalizedTest{i});
+    groups = [groups "Welpredicted quantile"];
+    j = j+1;
+end
+
+% figure
+% hold on
+
+% plot(prove(119,:))
+% plot(prove(120,:))
+
+%% PARALLELCOORDS PLOTS
+clc
+figure
+hold on
+legend(Location="southwest")
+xlabel('Normalized number of cycle' ,'FontSize',18 );
+ylabel('SoH','FontSize',18 );
+newcolors = [0 0.4470 0.7410
+             0.9290 0.6940 0.1250
+             252/255, 119/255, 121/255];
+         
+colororder(newcolors)
+
+parallelcoords(prove,'quantile',.2,'LineWidth',1.5, group=groups)
+
+%% MOVE IN ABOVE SECTION
+plot(normalizedX{59}, "-", 'LineWidth',1.2,color=[252/255, 119/255, 121/255], HandleVisibility='off');
+plot(normalizedX{83}, "-", 'LineWidth',1.2,color=[252/255, 119/255, 121/255], DisplayName='Mispredicted test samples');
+%% PARALLELCOORDS PLOTS
+
+figure()
+hold on
+parallelcoords(prove(1:120,:),'quantile',.2,'LineWidth',2, group=groups(1:120))
+title("quantile 0.2")
+for i=weird
+    plot(normalizedX{i}, color="r")
+end
+for i=test
+    plot(normalizedTest{i}, Color=[0.9290, 0.6940, 0.1250])
+end
 %% Find a short sequence in the train and sobstitute into the test
 
 for i=1:numel(Xtrain)
@@ -265,6 +502,7 @@ model_cvR2 = [];
 models = cell(3,1);
 type = "pyramid";    %type of cross validation (normal, pyramid, none)
 path = "../../RUL features tries/" + stringWindow;  
+
 
 if ~exist(path + "/SoH Results V2", 'dir')
        mkdir(path + "/SoH Results V2");

@@ -63,6 +63,22 @@ hold on
 xlim([0 3600])
 ylim([3.4 4.25])
 
+
+
+color_map = parula(256) %flipud(hot(256)); % red to blue
+min_length = 1;
+max_length = 256; %length(charge_indices);
+
+for k=1:25:length(charge_indices)
+
+    length_range = max_length - min_length;
+    length_offset = 1.6*k - min_length;
+    color_idx = round(1 + (size(color_map, 1) - 1) * length_offset / length_range);
+
+    plot(charging_times{k}(1:end), charging_cycles{k}(1:end),'Color', color_map(color_idx,:), 'LineWidth',2);
+end
+
+%%
 j=0;
 colori = ["#ebd534", "#ebc934", "#ebbd34", "#ebab34", "#eb9634", "#eb7d34", "#eb6834" ];
 for i=1:25:length(charge_indices)
@@ -168,4 +184,14 @@ plot(diff_earn)
 
 total_nobonus = sum(earn_nobonus)
 total_bonus= sum(earn_bonus)
+
+%%
+% PARFOR testing
+
+M=1;
+tic
+parfor (i=1:20000000000, M)
+    a = i*i;
+end
+toc
 
